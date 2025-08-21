@@ -2,7 +2,6 @@
 # 이 스크립트는 Windows 시스템에서 휘발성 데이터를 포함한 주요 증거를 수집합니다.
 # 수집된 데이터는 바탕화면의 고유 폴더에 정리되어 저장되며, 인터넷 연결을 사용하지 않습니다.
 # 보고서의 지침에 따라 PowerShell cmdlet 대신 주로 명령줄 도구를 사용합니다.
-# 권한 문제 및 글자 깨짐 현상 개선 버전입니다.
 
 # 출력 디렉토리 설정: 타임스탬프를 포함하여 고유한 폴더 생성
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
@@ -31,12 +30,12 @@ Write-Host "  [수집 이유]: 시스템의 현재 상태를 파악하고, 공�
 
 # 1.1 시스템 날짜 및 시간
 Write-Host "  - 시스템 날짜 및 시간 정보 수집 (date /T, time /T)..."
-cmd.exe /c "date /T" | Out-File -FilePath (Join-Path $outputDir "System_Date.txt") -Encoding UTF8
-cmd.exe /c "time /T" | Out-File -FilePath (Join-Path $outputDir "System_Time.txt") -Encoding UTF8
+cmd.exe /c "date /T" | Out-File -FilePath (Join-Path $outputDir "System_Date.txt") 
+cmd.exe /c "time /T" | Out-File -FilePath (Join-Path $outputDir "System_Time.txt")
 
 # 1.2 시스템 정보 및 HotFix (systeminfo 사용)
 Write-Host "  - OS, 시스템 구성 및 HotFix 정보 수집 (systeminfo)..."
-cmd.exe /c "systeminfo" | Out-File -FilePath (Join-Path $outputDir "System_Info.txt") -Encoding UTF8
+cmd.exe /c "systeminfo" | Out-File -FilePath (Join-Path $outputDir "System_Info.txt")
 
 # -----------------------------------------------------------------------------
 # KISA 보고서 3장 1절. 윈도우 사고 분석
@@ -50,19 +49,19 @@ Write-Host "  (참고: 'listdlls'와 'handle'의 세부 기능은 명령줄 도�
 
 # 2.1 실행 중인 프로세스 정보 (tasklist /v 사용)
 Write-Host "  - 실행 중인 프로세스 정보 수집 (tasklist /v)..."
-cmd.exe /c "tasklist /v" | Out-File -FilePath (Join-Path $outputDir "Processes_TaskList_V.txt") -Encoding UTF8
+cmd.exe /c "tasklist /v" | Out-File -FilePath (Join-Path $outputDir "Processes_TaskList_V.txt")
 
 # 2.2 네트워크 연결 정보 (netstat -an 사용)
 Write-Host "  - 네트워크 연결 정보 수집 (netstat -an)..."
-cmd.exe /c "netstat -an" | Out-File -FilePath (Join-Path $outputDir "Network_Netstat_an.txt") -Encoding UTF8
+cmd.exe /c "netstat -an" | Out-File -FilePath (Join-Path $outputDir "Network_Netstat_an.txt")
 
 # 2.3 네트워크 인터페이스 정보 (ipconfig /all 사용)
 Write-Host "  - 네트워크 인터페이스 정보 수집 (ipconfig /all)..."
-cmd.exe /c "ipconfig /all" | Out-File -FilePath (Join-Path $outputDir "Network_IPConfig_All.txt") -Encoding UTF8
+cmd.exe /c "ipconfig /all" | Out-File -FilePath (Join-Path $outputDir "Network_IPConfig_All.txt")
 
 # Promiscuous 모드 확인 (WMI를 통한 간접 확인)
 Write-Host "  - 네트워크 어댑터 Promiscuous 모드 활성 여부 확인 (WMI)..."
-Get-WmiObject -Class Win32_NetworkAdapterConfiguration | Select-Object Description, MACAddress, IPAddress, WINSPrimaryServer, WINSSecondaryServer, DNSHostName, ServiceName, @{Name="PromiscuousModeEnabled"; Expression={if($_.GetExtensionProperty("PromiscuousModeEnabled")){"Yes"}else{"No"}}} | Export-Csv -Path (Join-Path $outputDir "Network_AdapterConfig_WMI.csv") -NoTypeInformation -Encoding UTF8
+Get-WmiObject -Class Win32_NetworkAdapterConfiguration | Select-Object Description, MACAddress, IPAddress, WINSPrimaryServer, WINSSecondaryServer, DNSHostName, ServiceName, @{Name="PromiscuousModeEnabled"; Expression={if($_.GetExtensionProperty("PromiscuousModeEnabled")){"Yes"}else{"No"}}} | Export-Csv -Path (Join-Path $outputDir "Network_AdapterConfig_WMI.csv") -NoTypeInformation
 
 # -----------------------------------------------------------------------------
 # KISA 보고서 3장 1절. 윈도우 사고 분석
@@ -76,23 +75,23 @@ Write-Host "  (참고: 'ntlast'와 같은 상세 로그인 기록은 이벤트 �
 
 # 3.1 로컬 사용자 정보 (net user 사용)
 Write-Host "  - 로컬 사용자 정보 수집 (net user)..."
-cmd.exe /c "net user" | Out-File -FilePath (Join-Path $outputDir "Local_Users.txt") -Encoding UTF8
+cmd.exe /c "net user" | Out-File -FilePath (Join-Path $outputDir "Local_Users.txt")
 
 # 3.2 로컬 그룹 정보 (net localgroup 사용)
 Write-Host "  - 로컬 그룹 정보 수집 (net localgroup)..."
-cmd.exe /c "net localgroup" | Out-File -FilePath (Join-Path $outputDir "Local_Groups.txt") -Encoding UTF8
+cmd.exe /c "net localgroup" | Out-File -FilePath (Join-Path $outputDir "Local_Groups.txt")
 
 # 각 로컬 그룹의 멤버 정보 수집 (추가적인 net localgroup 명령어 사용)
 Write-Host "  - 각 로컬 그룹의 멤버 정보 수집 (net localgroup <groupname>)..."
 try {
     # 'net localgroup' 결과 파싱하여 그룹 이름만 추출
     $groups = (cmd.exe /c "net localgroup") | Select-String -Pattern "^[\w\s]+\s*$" | ForEach-Object { $_.ToString().Trim() }
-    
+    # 'Administrators' 그룹과 같은 흔한 그룹은 일반적으로 멤버가 많지 않으므로, 자세히 수집
+    # 실제로는 모든 그룹을 반복하는 것이 더 정확
     $detailedGroupInfo = @()
     foreach ($groupName in $groups) {
         if ($groupName -and $groupName -notmatch "----------------" -and $groupName -notmatch "명령을 잘 실행했습니다.") {
             try {
-                # 그룹 이름에 공백이 있을 경우를 대비해 큰따옴표로 감쌈
                 $groupMembers = (cmd.exe /c "net localgroup `"$groupName`"") | Out-String
                 $detailedGroupInfo += "$groupName`n$groupMembers`n"
             } catch {
@@ -100,7 +99,7 @@ try {
             }
         }
     }
-    $detailedGroupInfo | Out-File -FilePath (Join-Path $outputDir "Local_Groups_DetailedMembers.txt") -Encoding UTF8
+    $detailedGroupInfo | Out-File -FilePath (Join-Path $outputDir "Local_Groups_DetailedMembers.txt")
 } catch {
     Write-Warning "로컬 그룹 멤버 정보 수집 중 상위 오류: $($_.Exception.Message)"
 }
@@ -108,11 +107,11 @@ try {
 
 # 3.3 공유 폴더 정보 (net share 사용)
 Write-Host "  - 공유 폴더 정보 수집 (net share)..."
-cmd.exe /c "net share" | Out-File -FilePath (Join-Path $outputDir "Shared_Folders.txt") -Encoding UTF8
+cmd.exe /c "net share" | Out-File -FilePath (Join-Path $outputDir "Shared_Folders.txt")
 
 # 현재 활성 세션 (net session 대체) - 이 정보는 보안상 제한될 수 있어 기본적으로 생략
 # Write-Host "  - 활성 SMB 세션 정보 수집 (net session, 권한 문제로 생략될 수 있음)..."
-# cmd.exe /c "net session" | Out-File -FilePath (Join-Path $outputDir "SMB_Sessions.txt") -Encoding UTF8
+# cmd.exe /c "net session" | Out-File -FilePath (Join-Path $outputDir "SMB_Sessions.txt")
 
 # -----------------------------------------------------------------------------
 # KISA 보고서 3장 1절. 윈도우 사고 분석
@@ -126,10 +125,10 @@ Write-Host "  [수집 이유]: 악성코드가 시스템 재부팅 후에도 자
 
 # 4.1 레지스트리 Run 키 정보 수집 (reg query 경로 수정)
 $runKeysCmd = @(
-    "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
-    "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce",
-    "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
-    "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce"
+    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
+    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce",
+    "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
+    "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce"
 )
 foreach ($key in $runKeysCmd) {
     try {
@@ -142,16 +141,16 @@ foreach ($key in $runKeysCmd) {
 
 # 4.2 서비스 정보 (sc query 사용)
 Write-Host "  - 서비스 정보 수집 (sc query type= service state= all)..."
-cmd.exe /c "sc query type= service state= all" | Out-File -FilePath (Join-Path $outputDir "Autostart_Services_SC.txt") -Encoding UTF8
+cmd.exe /c "sc query type= service state= all" | Out-File -FilePath (Join-Path $outputDir "Autostart_Services_SC.txt")
 
 # 4.3 스케줄된 작업 (schtasks /query 사용)
 Write-Host "  - 스케줄된 작업 정보 수집 (schtasks /query /fo list /v)..."
-cmd.exe /c "schtasks /query /fo list /v" | Out-File -FilePath (Join-Path $outputDir "Autostart_ScheduledTasks_SCHTASKS.txt") -Encoding UTF8
+cmd.exe /c "schtasks /query /fo list /v" | Out-File -FilePath (Join-Path $outputDir "Autostart_ScheduledTasks_SCHTASKS.txt")
 
 # 4.4 Winlogon Notification DLL (reg query 사용)
 Write-Host "  - Winlogon Notification DLL 정보 수집 (reg query)..."
 try {
-    cmd.exe /c "reg query `HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify` /s" | Out-File -FilePath (Join-Path $outputDir "Autostart_WinlogonNotify_REG.txt") -Encoding UTF8
+    cmd.exe /c "reg query `HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify` /s" | Out-File -FilePath (Join-Path $outputDir "Autostart_WinlogonNotify_REG.txt")
 } catch {
     Write-Warning "Winlogon Notify DLL 수집 중 오류: $($_.Exception.Message)"
 }
@@ -159,7 +158,7 @@ try {
 # 4.5 Internet Explorer BHO (Browser Helper Objects) 및 기타 IE 관련 확장 (reg query 사용)
 Write-Host "  - Internet Explorer BHO 및 확장 정보 수집 (reg query)..."
 try {
-    cmd.exe /c "reg query `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Browser Helper Objects` /s" | Out-File -FilePath (Join-Path $outputDir "Autostart_IE_BHOs_REG.txt") -Encoding UTF8
+    cmd.exe /c "reg query `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Browser Helper Objects` /s" | Out-File -FilePath (Join-Path $outputDir "Autostart_IE_BHOs_REG.txt")
 } catch {
     Write-Warning "IE BHO 수집 중 오류: $($_.Exception.Message)"
 }
@@ -180,7 +179,7 @@ $eventCount = 1000 # 각 로그별로 최근 1000개 이벤트만 추출
 foreach ($log in $logNames) {
     try {
         Write-Host "  - '$log' 이벤트 로그 수집 (wevtutil qe $log /c:$eventCount)..."
-        cmd.exe /c "wevtutil qe $log /f:text /c:$eventCount" | Out-File -FilePath (Join-Path $outputDir "EventLog_${log}_Recent.txt") -Encoding UTF8
+        cmd.exe /c "wevtutil qe $log /f:text /c:$eventCount" | Out-File -FilePath (Join-Path $outputDir "EventLog_${log}_Recent.txt")
     } catch {
         Write-Warning "이벤트 로그 '$log' 수집 중 오류: $($_.Exception.Message)"
     }
@@ -204,18 +203,16 @@ $tempInternetFilesPaths = @(
     "$env:USERPROFILE\Local Settings\History",                 # Windows XP/2003 (보고서 명시)
     "$env:USERPROFILE\Local Settings\COOKIES"                 # Windows XP/2003 (보고서 명시)
 )
-$tempInternetFilesPaths | Out-File -FilePath (Join-Path $outputDir "Internet_Temp_Paths.txt") -Encoding UTF8
+$tempInternetFilesPaths | Out-File -FilePath (Join-Path $outputDir "Internet_Temp_Paths.txt")
 
 # 6.2 최근 변경된 파일 목록 (MAC time 분석의 일부 - forfiles 사용)
-# 최근 3일 동안 수정된 파일 목록 (사용자 프로필 디렉터리 내에서 검색하여 권한 오류 최소화)
-Write-Host "  - 최근 3일 이내 수정된 파일 목록 수집 중 (사용자 프로필 내, forfiles 사용)..."
-Write-Host "  (경로 접근 권한 문제로 일부 파일이 누락될 수 있습니다.)"
+# 최근 3일 동안 수정된 파일 목록 (C: 드라이브만, 대용량 파일 시스템은 시간 소요)
+Write-Host "  - 최근 3일 이내 수정된 파일 목록 수집 중 (C: 드라이브, forfiles 사용, 시간이 오래 걸릴 수 있음)..."
 try {
     # forfiles는 CMD 명령어로, LastWriteTime 기반으로만 필터링 가능
-    # /P %USERPROFILE% 로 경로를 제한하여 시스템 디렉토리 권한 문제를 회피
     # /S: 하위 디렉토리 포함, /D -3: 3일 이내 수정된 파일
     # /C "cmd /c echo @path @fdate @ftime": 파일 경로, 수정 날짜, 수정 시간 출력
-    cmd.exe /c "forfiles /P `"$env:USERPROFILE`" /S /D -3 /C \"cmd /c echo @path @fdate @ftime\" 2> nul" | Out-File -FilePath (Join-Path $outputDir "Recent_Modified_Files_User_Profile_ForFiles.txt") -Encoding UTF8
+    cmd.exe /c 'forfiles /P C:\ /S /D -3 /C "cmd /c echo @path @fdate @ftime"' | Out-File -FilePath (Join-Path $outputDir "Recent_Modified_Files_C_Drive_ForFiles.txt") -Encoding UTF8
 } catch {
     Write-Warning "최근 변경 파일 수집 중 오류: $($_.Exception.Message)"
 }
