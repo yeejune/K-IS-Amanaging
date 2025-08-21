@@ -6,7 +6,6 @@
 
 # 출력 디렉토리 설정: 타임스탬프를 포함하여 고유한 폴더 생성
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-$computerName = $env:COMPUTERNAME
 $outputBaseDir = Join-Path ([Environment]::GetFolderPath("Desktop")) "IR_Collection" # 바탕화면에 폴더 생성
 $outputDir = Join-Path $outputBaseDir "$computerName_$timestamp"
 
